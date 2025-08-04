@@ -70,44 +70,70 @@ const finalizeGrid = (grid: GridCell[][]): void => {
 };
 
 const assignNumbersAndGenerateClues = (grid: GridCell[][], tempPlacedWords: Omit<PlacedWord, 'number'>[]): { clues: { across: Clue[], down: Clue[] }, finalPlacedWords: PlacedWord[] } => {
-    const startingCells = new Map<string, { row: number, col: number }>();
-    tempPlacedWords.forEach(p => {
-        const key = `${p.row},${p.col}`;
-        if (!startingCells.has(key)) {
-            startingCells.set(key, { row: p.row, col: p.col });
-        }
-    });
-
-    const sortedStarts = Array.from(startingCells.values()).sort((a, b) => a.row === b.row ? a.col - b.col : a.row - b.row);
-    
     let clueCounter = 1;
-    sortedStarts.forEach(cell => {
-        grid[cell.row][cell.col].number = clueCounter++;
+    const numberMap = new Map<string, number>();
+
+    // First, clear any existing numbers from the grid
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            grid[r][c].number = null;
+        }
+    }
+    
+    // Sort placed words by position to ensure consistent numbering
+    const sortedPlacedWords = [...tempPlacedWords].sort((a, b) => {
+        if (a.row !== b.row) return a.row - b.row;
+        return a.col - b.col;
     });
 
-    const finalPlacedWords: PlacedWord[] = tempPlacedWords.map(p => ({
-        ...p,
-        number: grid[p.row][p.col].number as number,
-    }));
-    
+    for (const pWord of sortedPlacedWords) {
+        const { row, col } = pWord;
+
+        const isAcrossStart = pWord.direction === 'across' && (col === 0 || grid[row][col - 1].isBlocker);
+        const isDownStart = pWord.direction === 'down' && (row === 0 || grid[row - 1][col].isBlocker);
+
+        if (isAcrossStart || isDownStart) {
+            const key = `${row},${col}`;
+            if (!numberMap.has(key)) {
+                numberMap.set(key, clueCounter);
+                grid[row][col].number = clueCounter;
+                clueCounter++;
+            }
+        }
+    }
+
+    const finalPlacedWords: PlacedWord[] = tempPlacedWords.map(p => {
+        const key = `${p.row},${p.col}`;
+        // A word's number is the number at its starting cell.
+        const wordNumber = grid[p.row][p.col].number;
+        return {
+            ...p,
+            number: wordNumber as number,
+        };
+    }).filter(p => p.number != null);
+
     const across: Clue[] = [];
     const down: Clue[] = [];
+
+    // Create a map to ensure we only add one clue per number per direction
+    const acrossCluesMap = new Map<number, Clue>();
+    const downCluesMap = new Map<number, Clue>();
 
     finalPlacedWords.forEach(pWord => {
         const clue: Clue = { number: pWord.number, text: pWord.clue, word: pWord.word };
         if (pWord.direction === 'across') {
-            across.push(clue);
+            if (!acrossCluesMap.has(pWord.number)) {
+                acrossCluesMap.set(pWord.number, clue);
+            }
         } else {
-            down.push(clue);
+            if (!downCluesMap.has(pWord.number)) {
+                downCluesMap.set(pWord.number, clue);
+            }
         }
     });
-
-    across.sort((a, b) => a.number - b.number);
-    down.sort((a, b) => a.number - b.number);
     
-    // Deduplicate clues for shared start points
-    const uniqueAcross = Array.from(new Map(across.map(item => [item.number, item])).values());
-    const uniqueDown = Array.from(new Map(down.map(item => [item.number, item])).values());
+    const uniqueAcross = Array.from(acrossCluesMap.values()).sort((a,b) => a.number - b.number);
+    const uniqueDown = Array.from(downCluesMap.values()).sort((a,b) => a.number - b.number);
 
     return { clues: { across: uniqueAcross, down: uniqueDown }, finalPlacedWords };
 };
