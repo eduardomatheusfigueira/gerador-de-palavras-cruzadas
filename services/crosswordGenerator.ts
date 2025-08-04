@@ -135,6 +135,10 @@ const assignNumbersAndGenerateClues = (grid: GridCell[][], tempPlacedWords: Omit
     const uniqueAcross = Array.from(acrossCluesMap.values()).sort((a,b) => a.number - b.number);
     const uniqueDown = Array.from(downCluesMap.values()).sort((a,b) => a.number - b.number);
 
+    console.log('finalPlacedWords:', finalPlacedWords);
+    console.log('across clues:', uniqueAcross);
+    console.log('down clues:', uniqueDown);
+
     return { clues: { across: uniqueAcross, down: uniqueDown }, finalPlacedWords };
 };
 
