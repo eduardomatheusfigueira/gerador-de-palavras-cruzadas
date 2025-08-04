@@ -196,8 +196,8 @@ export const generateCrosswordLayout = (words: WordInput[], gridSize: number = 2
     }
     if(tempPlacedWords.length === 0) return null;
 
-    const { clues, finalPlacedWords } = assignNumbersAndGenerateClues(grid, tempPlacedWords);
     finalizeGrid(grid);
+    const { clues, finalPlacedWords } = assignNumbersAndGenerateClues(grid, tempPlacedWords);
 
     return { grid, clues, placedWords: finalPlacedWords };
 };
