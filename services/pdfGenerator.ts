@@ -1,105 +1,105 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { GridData } from '../types';
+import type { GridData, GridCell, Clue } from '../types';
 
-export const generateCrosswordPdf = (gridData: GridData, theme: string): void => {
-  try {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+const A5_WIDTH = 148;
+const A5_HEIGHT = 210;
+const MARGIN = 10;
 
-    // 1. Add Title
-    doc.setFontSize(18);
-    doc.text(`Palavras Cruzadas: ${theme}`, pageWidth / 2, 20, { align: 'center' });
-
-    // 2. Draw Grid
-    const grid = gridData.grid;
+// Helper to draw the grid
+const drawGrid = (doc: jsPDF, grid: GridCell[][], startY: number, showSolution: boolean) => {
     const gridSize = grid.length;
-    const margin = 15;
-    const availableWidth = pageWidth - margin * 2;
+    const availableWidth = A5_WIDTH - MARGIN * 2;
     const cellSize = availableWidth / gridSize;
-    const startX = margin;
-    const startY = 30;
+    const startX = MARGIN;
 
-    doc.setDrawColor(150, 150, 150); // Light grey for lines
+    doc.setDrawColor(150, 150, 150);
+    doc.setTextColor(0, 0, 0);
+
     for (let r = 0; r < gridSize; r++) {
-      for (let c = 0; c < gridSize; c++) {
-        const cell = grid[r][c];
-        const x = startX + c * cellSize;
-        const y = startY + r * cellSize;
+        for (let c = 0; c < gridSize; c++) {
+            const cell = grid[r][c];
+            const x = startX + c * cellSize;
+            const y = startY + r * cellSize;
 
-        if (cell.isBlocker) {
-          doc.setFillColor(40, 40, 40);
-          doc.rect(x, y, cellSize, cellSize, 'F');
-        } else {
-          doc.rect(x, y, cellSize, cellSize);
-          if (cell.number) {
-            doc.setFontSize(Math.max(6, cellSize / 4));
-            doc.setTextColor(80, 80, 80);
-            doc.text(cell.number.toString(), x + 1, y + (cellSize / 4), {
-              baseline: 'top',
-            });
-          }
+            if (cell.isBlocker) {
+                doc.setFillColor(40, 40, 40);
+                doc.rect(x, y, cellSize, cellSize, 'F');
+            } else {
+                doc.rect(x, y, cellSize, cellSize, 'S');
+                if (cell.number) {
+                    doc.setFontSize(Math.max(5, cellSize / 4.5));
+                    doc.text(cell.number.toString(), x + 0.8, y + 1, { baseline: 'top' });
+                }
+                if (showSolution && cell.char) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(Math.max(8, cellSize / 1.8));
+                    doc.text(cell.char, x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
+                    doc.setFont('helvetica', 'normal');
+                }
+            }
         }
-      }
     }
-    doc.setTextColor(0, 0, 0); // Reset text color
+    return startY + gridSize * cellSize;
+};
 
-    // 3. Add Clues
-    let finalY = startY + gridSize * cellSize + 10;
-    
-    // Add a new page if clues won't fit well
-    if (finalY > 200) {
-        doc.addPage();
-        finalY = 20;
-    }
+// Helper to draw clues
+const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: number) => {
+    const colWidth = (A5_WIDTH - MARGIN * 2 - 5) / 2;
+    const col1X = MARGIN;
+    const col2X = MARGIN + colWidth + 5;
 
-    const headStyles = {
-        fillColor: '#4F46E5', // indigo-600
-        textColor: 'white',
-        fontStyle: 'bold',
-    };
+    const acrossBody = clues.across.map(c => [`${c.number}.`, c.text]);
+    const downBody = clues.down.map(c => [`${c.number}.`, c.text]);
+
     const tableProps = {
-        theme: 'grid' as const,
-        headStyles: headStyles,
-        styles: {
-            fontSize: 9,
-            cellPadding: 1.5,
-        },
+        theme: 'plain' as const,
+        styles: { fontSize: 9, cellPadding: { top: 0.5, right: 1, bottom: 0.5, left: 1 }, valign: 'top' as const },
         columnStyles: {
-            0: { cellWidth: 15, halign: 'center' as const },
-            1: { cellWidth: 'auto' },
+            0: { cellWidth: 8, fontStyle: 'bold' as const },
+            1: { cellWidth: colWidth - 8 }
         },
+        showHead: 'firstPage' as const,
+        headStyles: { fontStyle: 'bold', fontSize: 11, fillColor: undefined, textColor: 0, halign: 'left' as const, cellPadding: { top: 0, right: 0, bottom: 2, left: 1 } },
     };
 
-    if (gridData.clues.across.length > 0) {
-      autoTable(doc, {
-        ...tableProps,
-        startY: finalY,
-        head: [['Número', 'Horizontais']],
-        body: gridData.clues.across.map(c => [c.number.toString(), c.text]),
-      });
-       finalY = (doc as any).lastAutoTable.finalY + 8;
-    }
+    autoTable(doc, { ...tableProps, head: [['Horizontais']], body: acrossBody, startY, margin: { left: col1X } });
+    autoTable(doc, { ...tableProps, head: [['Verticais']], body: downBody, startY, margin: { left: col2X } });
+};
 
-    if (gridData.clues.down.length > 0) {
-        if (finalY > 250) { // Check again before adding second table
+// Main PDF generation function
+export const generateCrosswordPdf = (gridData: GridData, theme: string): void => {
+    try {
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+
+        // --- Puzzle Page ---
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(theme.toUpperCase(), A5_WIDTH / 2, 15, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+
+        const gridEndY = drawGrid(doc, gridData.grid, 22, false);
+
+        let cluesStartY = gridEndY + 8;
+        if (cluesStartY > A5_HEIGHT - 60) { // Check if there's enough space for clues
             doc.addPage();
-            finalY = 20;
+            cluesStartY = MARGIN;
         }
-       autoTable(doc, {
-        ...tableProps,
-        startY: finalY,
-        head: [['Número', 'Verticais']],
-        body: gridData.clues.down.map(c => [c.number.toString(), c.text]),
-      });
+        drawClues(doc, gridData.clues, cluesStartY);
+
+        // --- Solution Page ---
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('SOLUÇÃO', A5_WIDTH / 2, 15, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        drawGrid(doc, gridData.grid, 22, true);
+
+        const sanitizedTheme = theme.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 'palavras_cruzadas';
+        doc.save(`${sanitizedTheme}.pdf`);
+
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        alert("An error occurred while generating the PDF.");
     }
-
-    // 4. Save PDF
-    const sanitizedTheme = theme.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 'palavras_cruzadas';
-    doc.save(`${sanitizedTheme}.pdf`);
-
-  } catch (error) {
-    console.error("Erro ao gerar PDF:", error);
-    alert("Ocorreu um erro ao tentar gerar o PDF.");
-  }
 };
