@@ -83,11 +83,26 @@ const drawGrid = (doc: jsPDF, grid: GridCell[][], startY: number, showSolution: 
     return startY + gridSize * cellSize;
 };
 
-// Helper to draw clues
+// Helper to draw clues with dynamic font size
 const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: number) => {
     const colWidth = (A5_WIDTH - MARGIN * 2 - 5) / 2;
-    const col1X = MARGIN;
-    const col2X = MARGIN + colWidth + 5;
+    const numberColWidth = 6;
+    const textColWidth = colWidth - numberColWidth;
+
+    const allClueTexts = [...clues.across.map(c => c.text), ...clues.down.map(c => c.text)];
+
+    let fontSize = 9; // Start with a reasonable font size
+    let longestClue = '';
+    allClueTexts.forEach(text => {
+        if(doc.getStringUnitWidth(text) * fontSize > doc.getStringUnitWidth(longestClue) * fontSize) {
+            longestClue = text;
+        }
+    });
+
+    // Dynamically adjust font size
+    while (doc.getStringUnitWidth(longestClue) * (fontSize / doc.internal.scaleFactor) > textColWidth && fontSize > 4) {
+        fontSize -= 0.5;
+    }
 
     const acrossBody = clues.across.map(c => [`${c.number}.`, c.text]);
     const downBody = clues.down.map(c => [`${c.number}.`, c.text]);
@@ -95,14 +110,14 @@ const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: 
     const tableProps = {
         theme: 'plain' as const,
         styles: {
-            fontSize: 7,
+            fontSize: fontSize,
             cellPadding: { top: 0.5, right: 1, bottom: 0.5, left: 1 },
             valign: 'top' as const,
             lineWidth: 0,
         },
         columnStyles: {
-            0: { cellWidth: 6, fontStyle: 'bold' as const },
-            1: { cellWidth: colWidth - 6 }
+            0: { cellWidth: numberColWidth, fontStyle: 'bold' as const },
+            1: { cellWidth: textColWidth }
         },
         showHead: 'firstPage' as const,
         headStyles: {
@@ -112,12 +127,13 @@ const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: 
             halign: 'left' as const,
             cellPadding: { top: 0, right: 0, bottom: 2, left: 1 }
         },
-        // Remove background colors for a black and white design
         didParseCell: function (data: any) {
             data.cell.styles.fillColor = '#ffffff';
         }
     };
 
+    const col1X = MARGIN;
+    const col2X = MARGIN + colWidth + 5;
     autoTable(doc, { ...tableProps, head: [['Horizontais']], body: acrossBody, startY, margin: { left: col1X } });
     autoTable(doc, { ...tableProps, head: [['Verticais']], body: downBody, startY, margin: { left: col2X } });
 };
