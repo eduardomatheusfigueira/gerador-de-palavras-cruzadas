@@ -95,14 +95,14 @@ const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: 
     const tableProps = {
         theme: 'plain' as const,
         styles: {
-            fontSize: 9,
+            fontSize: 7,
             cellPadding: { top: 0.5, right: 1, bottom: 0.5, left: 1 },
             valign: 'top' as const,
             lineWidth: 0,
         },
         columnStyles: {
-            0: { cellWidth: 8, fontStyle: 'bold' as const },
-            1: { cellWidth: colWidth - 8 }
+            0: { cellWidth: 6, fontStyle: 'bold' as const },
+            1: { cellWidth: colWidth - 6 }
         },
         showHead: 'firstPage' as const,
         headStyles: {
