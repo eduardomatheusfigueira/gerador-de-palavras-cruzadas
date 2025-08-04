@@ -9,6 +9,8 @@ import CrosswordGrid from './components/CrosswordGrid';
 import ClueList from './components/ClueList';
 import PlayerGrid from './components/PlayerGrid';
 import GameOverModal from './components/GameOverModal';
+import SettingsModal from './components/SettingsModal';
+import GameMenu from './components/GameMenu';
 
 // Icons
 const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 hover:text-red-700"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>);
@@ -40,6 +42,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [showSolution, setShowSolution] = useState(false);
     const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('gemini-api-key') || '');
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Player State
     const [isPlaying, setIsPlaying] = useState(false);
@@ -345,126 +348,74 @@ export default function App() {
 
     const renderEditor = () => (
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col h-fit">
-                {/* API Key Section */}
-                <div className="border-b border-gray-200 pb-6 mb-6">
-                    <h2 className="text-xl font-bold mb-3 flex items-center gap-3"><KeyIcon /> Sua Chave de API</h2>
-                    <div className="space-y-2">
-                        <div>
-                            <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-1">Chave de API do Google Gemini</label>
-                            <input 
-                                id="apiKey" 
-                                type="password" 
-                                value={apiKey} 
-                                onChange={(e) => setApiKey(e.target.value)} 
-                                placeholder="Cole sua chave aqui" 
-                                className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" 
-                            />
-                        </div>
-                        <p className="text-xs text-gray-500">
-                            Sua chave é salva apenas neste navegador.
-                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline ml-1">
-                                Obter uma chave de API.
-                            </a>
-                        </p>
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                apiKey={apiKey}
+                onApiKeyChange={setApiKey}
+            />
+            <div className="lg:col-span-1">
+                 <GameMenu
+                    onGenerateWithAI={handleGenerateWithGemini}
+                    onAddWordsManually={() => { /* For future use */ }}
+                    onLoadGame={handleLoadClick}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                    isLoading={isLoading}
+                    theme={theme}
+                    onThemeChange={setTheme}
+                    wordCount={wordCount}
+                    onWordCountChange={setWordCount}
+                />
+                 {/* This section could be a separate component */}
+                 <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-bold border-b border-gray-200 pb-2 mb-4">Lista de Palavras ({words.length})</h3>
+                    <div className="space-y-3 overflow-y-auto max-h-72 pr-2">
+                        {words.length === 0 && !isLoading && <p className="text-gray-500 text-sm">Sua lista está vazia. Gere palavras com IA ou adicione manualmente.</p>}
+                        {isLoading && <p className="text-gray-500 text-sm">Gerando palavras...</p>}
+                        {words.map(word => (
+                            <div key={word.id} className="bg-gray-100 p-3 rounded-lg flex items-center justify-between">
+                                <div><p className="font-bold uppercase">{word.word}</p><p className="text-sm text-gray-600">{word.clue}</p></div>
+                                <button onClick={() => handleRemoveWord(word.id)} className="p-1 rounded-full hover:bg-red-100 transition"><TrashIcon /></button>
+                            </div>
+                        ))}
                     </div>
-                </div>
-
-                {/* IA Section */}
-                <div className="border-b border-gray-200 pb-6 mb-6">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-3"><SparklesIcon /> Gerar com IA</h2>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="theme" className="block text-sm font-medium text-gray-700 mb-1">Tema</label>
-                            <input id="theme" type="text" value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Ex: Capitais do Mundo" className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" disabled={isLoading}/>
-                        </div>
-                        <div>
-                            <label htmlFor="wordCount" className="block text-sm font-medium text-gray-700 mb-1">Número de Palavras</label>
-                            <input id="wordCount" type="number" value={wordCount} onChange={(e) => setWordCount(Math.max(5, Math.min(40, Number(e.target.value))))} className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" min="5" max="40" disabled={isLoading}/>
-                        </div>
-                        <button onClick={handleGenerateWithGemini} disabled={isLoading || !theme.trim() || !apiKey.trim()} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed">
-                            {isLoading ? 'Gerando...' : 'Gerar Palavras'}
-                        </button>
-                    </div>
-                </div>
-
-                {/* File Load Section */}
-                <div className="border-b border-gray-200 pb-6 mb-6">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-3"><LoadIcon /> Carregar Jogo</h2>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept=".json,application/json"
-                        className="hidden"
-                    />
-                    <button onClick={handleLoadClick} className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
-                        Selecionar arquivo .json
-                    </button>
-                </div>
-
-                {/* Manual Section */}
-                <div>
-                    <h2 className="text-2xl font-bold mb-4">Adicionar Manualmente</h2>
-                    <form onSubmit={handleAddWord} className="space-y-4 mb-6">
-                        <input type="text" value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Nova Palavra" className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                        <input type="text" value={newClue} onChange={(e) => setNewClue(e.target.value)} placeholder="Dica para a palavra" className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                        <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
-                            <PlusIcon /> Adicionar Palavra
-                        </button>
-                    </form>
-                </div>
-                
-                {error && <p className="text-red-600 bg-red-100 p-3 rounded-lg my-4 text-sm font-medium">{error}</p>}
-                
-                {/* Word List */}
-                <h3 className="text-lg font-bold mt-4 border-t border-gray-200 pt-4">Lista de Palavras ({words.length})</h3>
-                <div className="space-y-3 mt-4 flex-grow overflow-y-auto max-h-72 pr-2">
-                    {words.length === 0 && !isLoading && <p className="text-gray-500 text-sm">Sua lista está vazia.</p>}
-                    {words.map(word => (
-                        <div key={word.id} className="bg-gray-100 p-3 rounded-lg flex items-center justify-between">
-                            <div><p className="font-bold uppercase">{word.word}</p><p className="text-sm text-gray-600">{word.clue}</p></div>
-                            <button onClick={() => handleRemoveWord(word.id)} className="p-1 rounded-full hover:bg-red-100 transition"><TrashIcon /></button>
-                        </div>
-                    ))}
                 </div>
             </div>
 
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
-                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600"></div>
-                        <p className="text-lg text-gray-600 mt-4">A IA está criando suas palavras...</p>
-                    </div>
-                ) : (
+                {gridData ? (
                     <>
-                         {gridData && (
-                            <div className="flex justify-end mb-4 gap-2 flex-wrap">
-                                <button onClick={() => setShowSolution(!showSolution)} className="inline-flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-transform transform hover:scale-105">
-                                    <ShowAnswersIcon />
-                                    {showSolution ? 'Ocultar Respostas' : 'Mostrar Respostas'}
-                                </button>
-                                <button onClick={handlePlayOnline} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">
-                                    <PlayIcon />
-                                    Jogar Online
-                                </button>
-                                <button onClick={handlePlayTimedMode} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105">
-                                    <TimerIcon />
-                                    Contra o Relógio
-                                </button>
-                                <button onClick={handleSaveGame} className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
-                                    <SaveIcon />
-                                    Salvar JSON
-                                </button>
-                                <button onClick={handleGeneratePdf} className="inline-flex items-center gap-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-105">
-                                    <PdfIcon />
-                                    Gerar PDF
-                                </button>
-                            </div>
-                        )}
-                        <CrosswordGrid grid={gridData?.grid || []} showSolution={showSolution} />
-                        <ClueList acrossClues={gridData?.clues.across || []} downClues={gridData?.clues.down || []} activeClue={null}/>
+                        <div className="flex justify-end mb-4 gap-2 flex-wrap">
+                            <button onClick={() => setShowSolution(!showSolution)} className="inline-flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-transform transform hover:scale-105">
+                                <ShowAnswersIcon />
+                                {showSolution ? 'Ocultar Respostas' : 'Mostrar Respostas'}
+                            </button>
+                            <button onClick={handlePlayOnline} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">
+                                <PlayIcon />
+                                Jogar Online
+                            </button>
+                            <button onClick={handlePlayTimedMode} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105">
+                                <TimerIcon />
+                                Contra o Relógio
+                            </button>
+                            <button onClick={handleSaveGame} className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                                <SaveIcon />
+                                Salvar JSON
+                            </button>
+                            <button onClick={handleGeneratePdf} className="inline-flex items-center gap-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-105">
+                                <PdfIcon />
+                                Gerar PDF
+                            </button>
+                        </div>
+                        <CrosswordGrid grid={gridData.grid} showSolution={showSolution} />
+                        <ClueList acrossClues={gridData.clues.across} downClues={gridData.clues.down} activeClue={null}/>
                     </>
+                ) : (
+                     <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+                        <h2 className="text-2xl font-bold text-gray-700">Gerando sua Grade</h2>
+                        <p className="text-lg text-gray-500 mt-2">Aguarde um momento...</p>
+                    </div>
                 )}
             </div>
         </main>
