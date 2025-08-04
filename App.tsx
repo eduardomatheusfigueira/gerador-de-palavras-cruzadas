@@ -157,9 +157,13 @@ export default function App() {
         }
     };
     
-    const handleGeneratePdf = () => {
-        if (!gridData) { toast.error("Não há grade para gerar PDF."); return; }
-        generateCrosswordPdf(gridData, theme);
+    const handleGeneratePdf = (includeSolution: boolean) => {
+        if (!gridData) {
+            toast.error("Não há grade para gerar PDF. Gere uma grade primeiro.");
+            return;
+        }
+        toast.success("Gerando seu PDF...");
+        generateCrosswordPdf(gridData, theme, includeSolution);
     };
     
     const handleSaveGame = () => {
@@ -402,10 +406,25 @@ export default function App() {
                                 <SaveIcon />
                                 Salvar JSON
                             </button>
-                            <button onClick={handleGeneratePdf} className="inline-flex items-center gap-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-105">
-                                <PdfIcon />
-                                Gerar PDF
-                            </button>
+                            <div className="relative inline-block">
+                                <button
+                                    onClick={() => document.getElementById('pdf-menu')?.classList.toggle('hidden')}
+                                    className="inline-flex items-center gap-2 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-transform transform hover:scale-105"
+                                >
+                                    <PdfIcon />
+                                    Gerar PDF
+                                </button>
+                                <div id="pdf-menu" className="hidden absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                        <a href="#" onClick={(e) => { e.preventDefault(); handleGeneratePdf(false); document.getElementById('pdf-menu')?.classList.add('hidden'); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                            Apenas o Jogo
+                                        </a>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); handleGeneratePdf(true); document.getElementById('pdf-menu')?.classList.add('hidden'); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                            Jogo com Respostas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <CrosswordGrid grid={gridData.grid} showSolution={showSolution} />
                         <ClueList acrossClues={gridData.clues.across} downClues={gridData.clues.down} activeClue={null}/>
