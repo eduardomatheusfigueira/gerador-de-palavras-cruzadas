@@ -1,0 +1,6 @@
+{
+  "name": "Gerador de Palavras Cruzadas Criativas",
+  "description": "Crie suas próprias palavras cruzadas. Adicione palavras manualmente ou gere-as com IA com base em um tema, e o aplicativo construirá a grade para você.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
