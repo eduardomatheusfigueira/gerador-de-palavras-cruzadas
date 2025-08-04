@@ -8,6 +8,7 @@ import { generateCrosswordPdf } from './services/pdfGenerator';
 import CrosswordGrid from './components/CrosswordGrid';
 import ClueList from './components/ClueList';
 import PlayerGrid from './components/PlayerGrid';
+import GameOverModal from './components/GameOverModal';
 
 // Icons
 const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 hover:text-red-700"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>);
@@ -19,8 +20,15 @@ const ShowAnswersIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20
 const SaveIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>);
 const LoadIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>);
 const KeyIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>);
+const TimerIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>);
 
 export default function App() {
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    };
+
     // Editor State
     const [words, setWords] = useState<WordInput[]>([]);
     const [gridData, setGridData] = useState<GridData | null>(null);
@@ -35,6 +43,12 @@ export default function App() {
 
     // Player State
     const [isPlaying, setIsPlaying] = useState(false);
+    const [gameMode, setGameMode] = useState<'classic' | 'timed'>('classic');
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [isGameOver, setIsGameOver] = useState(false);
+    const [showGameOverModal, setShowGameOverModal] = useState(false);
+    const [gameStatus, setGameStatus] = useState<'win' | 'lose'>('lose');
     const [playerGrid, setPlayerGrid] = useState<(string | null)[][]>([]);
     const [validationGrid, setValidationGrid] = useState<ValidationState[][]>([]);
     const [activeCell, setActiveCell] = useState<{row: number, col: number} | null>(null);
@@ -64,12 +78,31 @@ export default function App() {
 
     const handlePlayOnline = () => {
         if (!gridData) return;
+        setGameMode('classic');
+        setIsTimerRunning(false);
+        setIsGameOver(false);
+        resetPlayerState();
+        setIsPlaying(true);
+    };
+
+    const handlePlayTimedMode = () => {
+        if (!gridData) return;
+        setGameMode('timed');
+        setTimeLeft(300); // 5 minutes
+        setIsTimerRunning(true);
+        setIsGameOver(false);
         resetPlayerState();
         setIsPlaying(true);
     };
 
     const handleBackToEditor = () => {
         setIsPlaying(false);
+        setIsTimerRunning(false);
+    };
+
+    const handleCloseModal = () => {
+        setShowGameOverModal(false);
+        handleBackToEditor();
     };
 
     const handleAddWord = (e: React.FormEvent) => {
@@ -203,15 +236,32 @@ export default function App() {
         if (!gridData) return;
         let correctCount = 0;
         let filledCount = 0;
+        let totalFillableCells = 0;
+
         const newValidationGrid = playerGrid.map((row, r) => row.map((cell, c) => {
+            const gridCell = gridData.grid[r][c];
+            if (gridCell.isBlocker) return 'none';
+
+            totalFillableCells++;
             if (!cell || cell === '') return 'none';
+
             filledCount++;
-            const isCorrect = gridData.grid[r][c].char === cell.toUpperCase();
+            const isCorrect = gridCell.char === cell.toUpperCase();
             if (isCorrect) correctCount++;
             return isCorrect ? 'correct' : 'incorrect';
         }));
+
         setValidationGrid(newValidationGrid);
-        toast.success(`${correctCount} de ${filledCount} letras corretas!`, { duration: 2000 });
+
+        if (correctCount === totalFillableCells && filledCount === totalFillableCells) {
+            toast.success(`Parabéns! Você completou o quebra-cabeça!`);
+            if (gameMode === 'timed') {
+                setIsTimerRunning(false);
+                setIsGameOver(true);
+            }
+        } else {
+            toast.success(`${correctCount} de ${filledCount} letras corretas!`, { duration: 2000 });
+        }
     };
 
     const handleRevealWord = () => {
@@ -260,6 +310,38 @@ export default function App() {
         }
 
     }, [activeCell, direction, gridData]);
+
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (gameMode === 'timed' && isTimerRunning && isPlaying) {
+            timer = setInterval(() => {
+                setTimeLeft(prevTime => {
+                    if (prevTime <= 1) {
+                        clearInterval(timer);
+                        setIsTimerRunning(false);
+                        setIsGameOver(true);
+                        toast.error("O tempo acabou!", { duration: 5000 });
+                        return 0;
+                    }
+                    return prevTime - 1;
+                });
+            }, 1000);
+        }
+        return () => {
+            clearInterval(timer);
+        };
+    }, [isTimerRunning, isPlaying, gameMode]);
+
+    useEffect(() => {
+        if (isGameOver && gameMode === 'timed') {
+            if (timeLeft === 0) {
+                setGameStatus('lose');
+            } else {
+                setGameStatus('win');
+            }
+            setShowGameOverModal(true);
+        }
+    }, [isGameOver, gameMode, timeLeft]);
 
     const renderEditor = () => (
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -366,6 +448,10 @@ export default function App() {
                                     <PlayIcon />
                                     Jogar Online
                                 </button>
+                                <button onClick={handlePlayTimedMode} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105">
+                                    <TimerIcon />
+                                    Contra o Relógio
+                                </button>
                                 <button onClick={handleSaveGame} className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
                                     <SaveIcon />
                                     Salvar JSON
@@ -389,11 +475,19 @@ export default function App() {
             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col h-fit lg:order-2">
                 <h2 className="text-2xl font-bold mb-1">Modo de Jogo</h2>
                 <p className="text-gray-600 mb-4 text-sm">Tema: {theme}</p>
+                {gameMode === 'timed' && (
+                    <div className="text-center my-4 p-4 bg-gray-100 rounded-lg">
+                        <p className="text-lg font-medium text-gray-700">Tempo Restante</p>
+                        <p className={`text-5xl font-bold ${timeLeft < 60 && timeLeft > 0 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                            {formatTime(timeLeft)}
+                        </p>
+                    </div>
+                )}
                 <div className="space-y-3">
-                     <button onClick={handleCheckGrid} className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Verificar Grade</button>
-                     <button onClick={handleRevealWord} disabled={!activeClue} className="w-full bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 transition disabled:bg-yellow-300 disabled:cursor-not-allowed">Revelar Palavra</button>
-                     <button onClick={handleRevealAll} className="w-full bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-700 transition">Revelar Tudo</button>
-                     <button onClick={resetPlayerState} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition">Limpar Grade</button>
+                     <button onClick={handleCheckGrid} className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-blue-300 disabled:cursor-not-allowed" disabled={isGameOver}>Verificar Grade</button>
+                     <button onClick={handleRevealWord} disabled={!activeClue || isGameOver} className="w-full bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 transition disabled:bg-yellow-300 disabled:cursor-not-allowed">Revelar Palavra</button>
+                     <button onClick={handleRevealAll} className="w-full bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-700 transition disabled:bg-yellow-300 disabled:cursor-not-allowed" disabled={isGameOver}>Revelar Tudo</button>
+                     <button onClick={resetPlayerState} className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed" disabled={isGameOver}>Limpar Grade</button>
                      <button onClick={handleBackToEditor} className="w-full mt-6 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition">Voltar ao Editor</button>
                 </div>
             </div>
@@ -403,6 +497,7 @@ export default function App() {
                     grid={gridData!.grid}
                     playerGrid={playerGrid}
                     validationGrid={validationGrid}
+                    isGameOver={isGameOver}
                     activeCell={activeCell}
                     direction={direction}
                     onCellClick={(row, col) => {
@@ -447,6 +542,13 @@ export default function App() {
             </header>
             
             {isPlaying ? renderPlayer() : renderEditor()}
+
+            <GameOverModal
+                isOpen={showGameOverModal}
+                onClose={handleCloseModal}
+                status={gameStatus}
+                timeLeft={timeLeft}
+            />
 
              <footer className="text-center mt-12 text-gray-500 text-sm">
                 <p>Desenvolvido com React, TypeScript, Tailwind CSS e a API Google Gemini.</p>
