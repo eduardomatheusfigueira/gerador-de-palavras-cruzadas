@@ -8,6 +8,7 @@ interface PlayerGridProps {
   validationGrid: ValidationState[][];
   activeCell: { row: number; col: number } | null;
   direction: 'across' | 'down';
+  isGameOver?: boolean;
   onCellClick: (row: number, col: number) => void;
   onGridChange: (newGrid: (string | null)[][]) => void;
   onDirectionChange: (newDirection: 'across' | 'down') => void;
@@ -20,6 +21,7 @@ const PlayerGrid = forwardRef<HTMLDivElement, PlayerGridProps>(({
   validationGrid,
   activeCell,
   direction,
+  isGameOver,
   onCellClick,
   onGridChange,
   onDirectionChange,
@@ -61,7 +63,7 @@ const PlayerGrid = forwardRef<HTMLDivElement, PlayerGridProps>(({
   };
   
   const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
-    if (!activeCell) return;
+    if (!activeCell || isGameOver) return;
     const target = e.target as HTMLInputElement;
     const value = target.value;
     
@@ -81,7 +83,7 @@ const PlayerGrid = forwardRef<HTMLDivElement, PlayerGridProps>(({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!activeCell) return;
+    if (!activeCell || isGameOver) return;
     const { row, col } = activeCell;
 
     let nextCell: {row: number, col: number} | null;
@@ -202,9 +204,9 @@ const PlayerGrid = forwardRef<HTMLDivElement, PlayerGridProps>(({
             <div
               key={index}
               className={`relative flex items-center justify-center aspect-square text-sm sm:text-base md:text-lg font-bold uppercase select-none
-                ${ isBlocker ? 'bg-gray-800' : `${bgColor} ${textColor} cursor-pointer` }
+                ${ isBlocker ? 'bg-gray-800' : `${bgColor} ${textColor} ${isGameOver ? 'cursor-not-allowed' : 'cursor-pointer'}` }
               `}
-              onClick={() => !isBlocker && onCellClick(row, col)}
+              onClick={() => !isBlocker && !isGameOver && onCellClick(row, col)}
             >
               {cell.number && (
                 <span className="absolute top-0 left-0 text-[8px] sm:text-[10px] leading-none font-normal text-gray-600 p-0.5">
