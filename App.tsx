@@ -11,6 +11,7 @@ import PlayerGrid from './components/PlayerGrid';
 import GameOverModal from './components/GameOverModal';
 import SettingsModal from './components/SettingsModal';
 import GameMenu from './components/GameMenu';
+import MainMenu from './components/MainMenu';
 
 // Icons
 const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 hover:text-red-700"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>);
@@ -43,6 +44,9 @@ export default function App() {
     const [showSolution, setShowSolution] = useState(false);
     const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('gemini-api-key') || '');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    // Navigation
+    const [page, setPage] = useState<'menu' | 'editor' | 'player'>('menu');
 
     // Player State
     const [isPlaying, setIsPlaying] = useState(false);
@@ -86,6 +90,7 @@ export default function App() {
         setIsGameOver(false);
         resetPlayerState();
         setIsPlaying(true);
+        setPage('player');
     };
 
     const handlePlayTimedMode = () => {
@@ -96,11 +101,13 @@ export default function App() {
         setIsGameOver(false);
         resetPlayerState();
         setIsPlaying(true);
+        setPage('player');
     };
 
     const handleBackToEditor = () => {
         setIsPlaying(false);
         setIsTimerRunning(false);
+        setPage('editor');
     };
 
     const handleCloseModal = () => {
@@ -221,6 +228,7 @@ export default function App() {
                 setIsPlaying(false);
                 setError(null);
                 toast.success("Jogo carregado com sucesso!");
+                setPage('editor');
 
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : "Erro ao carregar o arquivo.";
@@ -358,14 +366,11 @@ export default function App() {
 
     const renderEditor = () => (
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                apiKey={apiKey}
-                onApiKeyChange={setApiKey}
-            />
+            <button onClick={() => setPage('menu')} className="lg:col-span-3 mb-4 text-sm text-blue-600 flex items-center gap-1">
+                ← Menu
+            </button>
             <div className="lg:col-span-1">
-                 <GameMenu
+                <GameMenu
                     onGenerateWithAI={handleGenerateWithGemini}
                     onAddWordsManually={() => { /* For future use */ }}
                     onLoadGame={handleLoadClick}
@@ -448,6 +453,9 @@ export default function App() {
 
     const renderPlayer = () => (
         <main className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+            <button onClick={() => setPage('menu')} className="mb-4 text-sm text-blue-600 lg:col-span-3 flex items-center gap-1">
+                ← Menu
+            </button>
             <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg flex flex-col h-fit lg:order-2">
                 <h2 className="text-2xl font-bold mb-1">Modo de Jogo</h2>
                 <p className="text-gray-600 mb-4 text-sm">Tema: {theme}</p>
@@ -508,27 +516,43 @@ export default function App() {
     )
 
     return (
-        <div className="container mx-auto p-4 md:p-8">
+        <div className="min-h-screen">
             <Toaster position="top-center" />
-            <header className="text-center mb-10">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800">
-                    Gerador de Palavras Cruzadas
-                </h1>
-                <p className="text-lg text-gray-600 mt-2">Crie, jogue e imprima suas palavras cruzadas</p>
-            </header>
-            
-            {isPlaying ? renderPlayer() : renderEditor()}
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="application/json" className="hidden" />
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                apiKey={apiKey}
+                onApiKeyChange={setApiKey}
+            />
+            {page === 'menu' ? (
+                <MainMenu
+                    onStart={() => { setWords([]); setGridData(null); setPage('editor'); }}
+                    onLoadGame={handleLoadClick}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                />
+            ) : (
+                <div className="container mx-auto p-4 md:p-8">
+                    <header className="text-center mb-10">
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800">
+                            Gerador de Palavras Cruzadas
+                        </h1>
+                        <p className="text-lg text-gray-600 mt-2">Crie, jogue e imprima suas palavras cruzadas</p>
+                    </header>
 
+                    {page === 'player' ? renderPlayer() : renderEditor()}
+
+                     <footer className="text-center mt-12 text-gray-500 text-sm">
+                        <p>Desenvolvido com React, TypeScript, Tailwind CSS e a API Google Gemini.</p>
+                    </footer>
+                </div>
+            )}
             <GameOverModal
                 isOpen={showGameOverModal}
                 onClose={handleCloseModal}
                 status={gameStatus}
                 timeLeft={timeLeft}
             />
-
-             <footer className="text-center mt-12 text-gray-500 text-sm">
-                <p>Desenvolvido com React, TypeScript, Tailwind CSS e a API Google Gemini.</p>
-            </footer>
         </div>
     );
 }
