@@ -1,191 +1,186 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import type { GridData, GridCell, Clue } from '../types';
 
 const A5_WIDTH = 148;
 const A5_HEIGHT = 210;
 const MARGIN = 10;
+const GRID_MAX_HEIGHT = 90; // leave room for clues
+const COLUMN_GAP = 5;
 
-// New helper function to create a compact grid
 const createCompactGrid = (grid: GridCell[][]): GridCell[][] => {
-    let minRow = grid.length, maxRow = -1, minCol = grid[0].length, maxCol = -1;
+  let minRow = grid.length, maxRow = -1, minCol = grid[0].length, maxCol = -1;
 
-    grid.forEach((row, r) => {
-        row.forEach((cell, c) => {
-            if (!cell.isBlocker) {
-                if (r < minRow) minRow = r;
-                if (r > maxRow) maxRow = r;
-                if (c < minCol) minCol = c;
-                if (c > maxCol) maxCol = c;
-            }
-        });
+  grid.forEach((row, r) => {
+    row.forEach((cell, c) => {
+      if (!cell.isBlocker) {
+        if (r < minRow) minRow = r;
+        if (r > maxRow) maxRow = r;
+        if (c < minCol) minCol = c;
+        if (c > maxCol) maxCol = c;
+      }
     });
+  });
 
-    // If no words were placed, return a small empty grid
-    if (maxRow === -1) {
-        return [[{ char: null, isBlocker: true, number: null }]];
-    }
+  if (maxRow === -1) {
+    return [[{ char: null, isBlocker: true, number: null }]];
+  }
 
-    // Add a 1-cell margin
-    minRow = Math.max(0, minRow - 1);
-    maxRow = Math.min(grid.length - 1, maxRow + 1);
-    minCol = Math.max(0, minCol - 1);
-    maxCol = Math.min(grid[0].length - 1, maxCol + 1);
+  minRow = Math.max(0, minRow - 1);
+  maxRow = Math.min(grid.length - 1, maxRow + 1);
+  minCol = Math.max(0, minCol - 1);
+  maxCol = Math.min(grid[0].length - 1, maxCol + 1);
 
-    const compactGrid: GridCell[][] = [];
-    for (let r = minRow; r <= maxRow; r++) {
-        compactGrid.push(grid[r].slice(minCol, maxCol + 1));
-    }
+  const compactGrid: GridCell[][] = [];
+  for (let r = minRow; r <= maxRow; r++) {
+    compactGrid.push(grid[r].slice(minCol, maxCol + 1));
+  }
 
-    return compactGrid;
+  return compactGrid;
 };
 
-
-// Helper to draw the grid
 const drawGrid = (
-    doc: jsPDF,
-    grid: GridCell[][],
-    startY: number,
-    showSolution: boolean,
-    reserveClueSpace = true
+  doc: jsPDF,
+  grid: GridCell[][],
+  startY: number,
+  showSolution: boolean
 ) => {
-    const rows = grid.length;
-    const cols = grid[0].length;
-    const availableWidth = A5_WIDTH - MARGIN * 2;
-    const maxHeight = (reserveClueSpace ? A5_HEIGHT - MARGIN - 80 : A5_HEIGHT - MARGIN) - startY;
-    const cellSize = Math.min(availableWidth / cols, maxHeight / rows);
-    const totalGridWidth = cols * cellSize;
-    const startX = (A5_WIDTH - totalGridWidth) / 2; // Center the grid horizontally
+  const rows = grid.length;
+  const cols = grid[0].length;
+  const availableWidth = A5_WIDTH - MARGIN * 2;
+  const cellSize = Math.min(availableWidth / cols, GRID_MAX_HEIGHT / rows);
+  const totalGridWidth = cols * cellSize;
+  const startX = (A5_WIDTH - totalGridWidth) / 2;
 
-    doc.setDrawColor(100, 100, 100); // Darker gray for lines
-    doc.setTextColor(0, 0, 0);
-    doc.setLineWidth(0.2);
+  doc.setDrawColor(100, 100, 100);
+  doc.setTextColor(0, 0, 0);
+  doc.setLineWidth(0.2);
 
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const cell = grid[r][c];
-            const x = startX + c * cellSize;
-            const y = startY + r * cellSize;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = grid[r][c];
+      const x = startX + c * cellSize;
+      const y = startY + r * cellSize;
 
-            if (cell.isBlocker) {
-                // Using a pattern instead of solid black for better printing
-                doc.setFillColor(230, 230, 230); // Light gray fill for blockers
-                doc.rect(x, y, cellSize, cellSize, 'F');
-            } else {
-                doc.rect(x, y, cellSize, cellSize, 'S'); // Draw border
-                if (cell.number) {
-                    doc.setFontSize(Math.max(5, cellSize / 4));
-                    doc.text(cell.number.toString(), x + 0.8, y + 1.2, { baseline: 'top' });
-                }
-                if (showSolution && cell.char) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(Math.max(8, cellSize / 1.7));
-                    doc.text(cell.char, x + cellSize / 2, y + cellSize / 2, { align: 'center', baseline: 'middle' });
-                    doc.setFont('helvetica', 'normal');
-                }
-            }
+      if (cell.isBlocker) {
+        doc.setFillColor(230, 230, 230);
+        doc.rect(x, y, cellSize, cellSize, 'F');
+      } else {
+        doc.rect(x, y, cellSize, cellSize, 'S');
+        if (cell.number) {
+          doc.setFontSize(Math.max(5, cellSize / 4));
+          doc.text(cell.number.toString(), x + 0.8, y + 1.2, { baseline: 'top' });
         }
+        if (showSolution && cell.char) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(Math.max(8, cellSize / 1.7));
+          doc.text(cell.char, x + cellSize / 2, y + cellSize / 2, {
+            align: 'center',
+            baseline: 'middle'
+          });
+          doc.setFont('helvetica', 'normal');
+        }
+      }
     }
-    return startY + rows * cellSize;
+  }
+
+  return startY + rows * cellSize;
 };
 
-// Helper to draw clues with dynamic font size
-const drawClues = (doc: jsPDF, clues: { across: Clue[], down: Clue[] }, startY: number) => {
-    const colWidth = (A5_WIDTH - MARGIN * 2 - 5) / 2;
-    const numberColWidth = 6;
-    const textColWidth = colWidth - numberColWidth;
+const drawClues = (
+  doc: jsPDF,
+  clues: { across: Clue[]; down: Clue[] },
+  startY: number,
+  availableHeight: number
+) => {
+  let fontSize = 9;
+  const colWidth = (A5_WIDTH - MARGIN * 2 - COLUMN_GAP) / 2;
 
-    const allClueTexts = [...clues.across.map(c => c.text), ...clues.down.map(c => c.text)];
-
-    let fontSize = 9; // Start with a reasonable font size
-    let longestClue = '';
-    allClueTexts.forEach(text => {
-        if(doc.getStringUnitWidth(text) * fontSize > doc.getStringUnitWidth(longestClue) * fontSize) {
-            longestClue = text;
-        }
+  const calcHeight = (list: Clue[], size: number) => {
+    doc.setFontSize(size);
+    const lineHeight = size * 0.3528 + 1;
+    let h = (size + 2) * 0.3528 + 2; // heading
+    list.forEach(c => {
+      const text = `${c.number}. ${c.text}`;
+      const lines = doc.splitTextToSize(text, colWidth);
+      h += lines.length * lineHeight;
     });
+    return h;
+  };
 
-    // Dynamically adjust font size
-    while (doc.getStringUnitWidth(longestClue) * (fontSize / doc.internal.scaleFactor) > textColWidth && fontSize > 4) {
-        fontSize -= 0.5;
-    }
+  while (
+    Math.max(calcHeight(clues.across, fontSize), calcHeight(clues.down, fontSize)) >
+      availableHeight &&
+    fontSize > 4
+  ) {
+    fontSize -= 0.5;
+  }
 
-    const acrossBody = clues.across.map(c => [`${c.number}.`, c.text]);
-    const downBody = clues.down.map(c => [`${c.number}.`, c.text]);
+  const lineHeight = fontSize * 0.3528 + 1;
+  const headingHeight = (fontSize + 2) * 0.3528 + 2;
 
-    const tableProps = {
-        theme: 'plain' as const,
-        styles: {
-            fontSize: fontSize,
-            cellPadding: { top: 0.5, right: 1, bottom: 0.5, left: 1 },
-            valign: 'top' as const,
-            lineWidth: 0,
-        },
-        columnStyles: {
-            0: { cellWidth: numberColWidth, fontStyle: 'bold' as const },
-            1: { cellWidth: textColWidth }
-        },
-        showHead: 'firstPage' as const,
-        headStyles: {
-            fontStyle: 'bold',
-            fontSize: 11,
-            textColor: 0,
-            halign: 'left' as const,
-            cellPadding: { top: 0, right: 0, bottom: 2, left: 1 }
-        },
-        didParseCell: function (data: any) {
-            data.cell.styles.fillColor = '#ffffff';
-        }
-    };
+  // Across column
+  let y = startY;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontSize + 2);
+  doc.text('Horizontais', MARGIN, y);
+  y += headingHeight;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(fontSize);
+  clues.across.forEach(c => {
+    const text = `${c.number}. ${c.text}`;
+    const lines = doc.splitTextToSize(text, colWidth);
+    lines.forEach(line => {
+      doc.text(line, MARGIN, y);
+      y += lineHeight;
+    });
+  });
 
-    const col1X = MARGIN;
-    const col2X = MARGIN + colWidth + 5;
-    autoTable(doc, { ...tableProps, head: [['Horizontais']], body: acrossBody, startY, margin: { left: col1X } });
-    autoTable(doc, { ...tableProps, head: [['Verticais']], body: downBody, startY, margin: { left: col2X } });
+  // Down column
+  y = startY;
+  const x = MARGIN + colWidth + COLUMN_GAP;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontSize + 2);
+  doc.text('Verticais', x, y);
+  y += headingHeight;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(fontSize);
+  clues.down.forEach(c => {
+    const text = `${c.number}. ${c.text}`;
+    const lines = doc.splitTextToSize(text, colWidth);
+    lines.forEach(line => {
+      doc.text(line, x, y);
+      y += lineHeight;
+    });
+  });
 };
 
-// Main PDF generation function
-export const generateCrosswordPdf = (gridData: GridData, theme: string, includeSolution: boolean): void => {
-    try {
-        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
-        const compactGrid = createCompactGrid(gridData.grid);
+export const generateCrosswordPdf = (
+  gridData: GridData,
+  theme: string,
+  includeSolution: boolean
+): void => {
+  try {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
+    const compactGrid = createCompactGrid(gridData.grid);
 
-        // --- Puzzle Page ---
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(theme.toUpperCase(), A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(theme.toUpperCase(), A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
 
-        // Draw the compact grid
-        drawGrid(doc, compactGrid, MARGIN + 12, false, false);
+    const gridStartY = MARGIN + 12;
+    const gridBottom = drawGrid(doc, compactGrid, gridStartY, includeSolution);
+    const cluesStartY = gridBottom + 5;
+    const availableHeight = A5_HEIGHT - cluesStartY - MARGIN;
 
-        // --- Clues Page ---
-        doc.addPage();
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text('DICAS', A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
+    drawClues(doc, gridData.clues, cluesStartY, availableHeight);
 
-        // Draw the clues using a table for better organization
-        drawClues(doc, gridData.clues, MARGIN + 12);
-
-        // --- Solution Page (Optional) ---
-        if (includeSolution) {
-            doc.addPage();
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('SOLUÇÃO', A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-
-            // Draw the compact grid with the solution
-            drawGrid(doc, compactGrid, MARGIN + 12, true, false);
-        }
-
-        const sanitizedTheme = theme.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 'palavras_cruzadas';
-        doc.save(`${sanitizedTheme}.pdf`);
-
-    } catch (error) {
-        console.error("Error generating PDF:", error);
-        alert("An error occurred while generating the PDF.");
-    }
+    const sanitizedTheme =
+      theme.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') ||
+      'palavras_cruzadas';
+    doc.save(`${sanitizedTheme}.pdf`);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('An error occurred while generating the PDF.');
+  }
 };
