@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+  --brand-primary: #3f51b5; /* Indigo 600 */
+  --brand-secondary: #6366f1; /* Indigo 500 */
+  --brand-bg: #f9fafb;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--brand-bg);
+}
+
+.brand-bg {
+  background: linear-gradient(to bottom, var(--brand-primary), var(--brand-secondary));
+}
+
+.brand-title {
+  color: var(--brand-primary);
+}
+
+.brand-button {
+  background-color: var(--brand-primary);
+  color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.brand-button:hover {
+  background-color: var(--brand-secondary);
+}
