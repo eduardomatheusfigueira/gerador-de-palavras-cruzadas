@@ -1,4 +1,5 @@
 import type { WordInput, GridCell, PlacedWord, Clue, GridData } from '../types';
+import { createCompactGrid } from './gridUtils';
 
 const canPlaceWord = (word: string, row: number, col: number, direction: 'across' | 'down', grid: GridCell[][]): boolean => {
     const len = word.length;
@@ -201,7 +202,13 @@ export const generateCrosswordLayout = (words: WordInput[], gridSize: number = 2
     if(tempPlacedWords.length === 0) return null;
 
     finalizeGrid(grid);
-    const { clues, finalPlacedWords } = assignNumbersAndGenerateClues(grid, tempPlacedWords);
+    const { grid: compactGrid, rowOffset, colOffset } = createCompactGrid(grid);
+    const adjustedPlacedWords = tempPlacedWords.map(p => ({
+        ...p,
+        row: p.row - rowOffset,
+        col: p.col - colOffset,
+    }));
+    const { clues, finalPlacedWords } = assignNumbersAndGenerateClues(compactGrid, adjustedPlacedWords);
 
-    return { grid, clues, placedWords: finalPlacedWords };
+    return { grid: compactGrid, clues, placedWords: finalPlacedWords };
 };

@@ -1,43 +1,13 @@
 import jsPDF from 'jspdf';
 import type { GridData, GridCell, Clue } from '../types';
 import { BRAND_NAME, BRAND_PRIMARY_COLOR } from '../brand';
+import { createCompactGrid } from './gridUtils';
 
 const A5_WIDTH = 148;
 const A5_HEIGHT = 210;
 const MARGIN = 10;
 const GRID_MAX_HEIGHT = 90; // leave room for clues
 const COLUMN_GAP = 5;
-
-const createCompactGrid = (grid: GridCell[][]): GridCell[][] => {
-  let minRow = grid.length, maxRow = -1, minCol = grid[0].length, maxCol = -1;
-
-  grid.forEach((row, r) => {
-    row.forEach((cell, c) => {
-      if (!cell.isBlocker) {
-        if (r < minRow) minRow = r;
-        if (r > maxRow) maxRow = r;
-        if (c < minCol) minCol = c;
-        if (c > maxCol) maxCol = c;
-      }
-    });
-  });
-
-  if (maxRow === -1) {
-    return [[{ char: null, isBlocker: true, number: null }]];
-  }
-
-  minRow = Math.max(0, minRow - 1);
-  maxRow = Math.min(grid.length - 1, maxRow + 1);
-  minCol = Math.max(0, minCol - 1);
-  maxCol = Math.min(grid[0].length - 1, maxCol + 1);
-
-  const compactGrid: GridCell[][] = [];
-  for (let r = minRow; r <= maxRow; r++) {
-    compactGrid.push(grid[r].slice(minCol, maxCol + 1));
-  }
-
-  return compactGrid;
-};
 
 const drawGrid = (
   doc: jsPDF,
@@ -162,7 +132,7 @@ export const generateCrosswordPdf = (
 ): void => {
   try {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
-    const compactGrid = createCompactGrid(gridData.grid);
+    const { grid: compactGrid } = createCompactGrid(gridData.grid);
 
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
