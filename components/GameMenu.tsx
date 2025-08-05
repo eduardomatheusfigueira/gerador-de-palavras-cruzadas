@@ -5,6 +5,8 @@ const SparklesIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" h
 const PlusIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
 const LoadIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>);
 const SettingsIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>);
+const PlayIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5.26 17.53 1.41 1.41C8.21 20.48 10 21 12 21s3.79-.52 5.33-1.94l1.41-1.41" /><path d="M5.26 6.47 6.67 5.06C8.21 3.52 10 3 12 3s3.79.52 5.33 1.94l1.41 1.41" /><path d="M15.53 5.26 14.12 6.67C12.48 8.21 12 10 12 12s.48 3.79 1.94 5.33l1.41 1.41" /><path d="M8.47 5.26 9.88 6.67C11.52 8.21 12 10 12 12s-.48 3.79-1.94 5.33L8.47 18.74" /><path d="M12 8v8" /><path d="M8 12h8" /></svg>);
+const TimerIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>);
 
 
 interface GameMenuProps {
@@ -17,6 +19,9 @@ interface GameMenuProps {
     onThemeChange: (theme: string) => void;
     wordCount: number;
     onWordCountChange: (count: number) => void;
+    canPlay: boolean;
+    onPlayClassic: () => void;
+    onPlayTimed: () => void;
 }
 
 const GameMenu: React.FC<GameMenuProps> = ({
@@ -28,7 +33,10 @@ const GameMenu: React.FC<GameMenuProps> = ({
     theme,
     onThemeChange,
     wordCount,
-    onWordCountChange
+    onWordCountChange,
+    canPlay,
+    onPlayClassic,
+    onPlayTimed
 }) => {
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col h-fit relative">
@@ -83,6 +91,28 @@ const GameMenu: React.FC<GameMenuProps> = ({
                         Carregar Jogo (.json)
                     </button>
                 </div>
+
+                {canPlay && (
+                    <div className="w-full max-w-xs space-y-3">
+                        <div className="w-full text-center">
+                            <p className="text-gray-500 my-2">Pronto para jogar?</p>
+                        </div>
+                        <button
+                            onClick={onPlayClassic}
+                            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105 flex items-center justify-center gap-2"
+                        >
+                            <PlayIcon />
+                            Modo Clássico
+                        </button>
+                        <button
+                            onClick={onPlayTimed}
+                            className="w-full bg-orange-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105 flex items-center justify-center gap-2"
+                        >
+                            <TimerIcon />
+                            Modo Cronometrado
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
