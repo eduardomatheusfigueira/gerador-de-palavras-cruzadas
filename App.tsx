@@ -273,11 +273,17 @@ export default function App() {
 
     const handleRevealWord = () => {
         if (!activeClue || !gridData) return;
-        const newPlayerGrid = [...playerGrid.map(row => [...row])];
-        const wordData = gridData.placedWords.find(p => p.number === activeClue.number && (p.direction === 'across' ? gridData.clues.across.some(c => c.number === p.number) : gridData.clues.down.some(c => c.number === p.number)));
+
+        // Use the current navigation direction to reveal the correct word.
+        // Without checking the direction, the first word with a matching number
+        // could be revealed, even if it belonged to the opposite orientation.
+        const wordData = gridData.placedWords.find(
+            p => p.number === activeClue.number && p.direction === direction
+        );
         if (!wordData) return;
-        
-        for(let i=0; i < wordData.word.length; i++) {
+
+        const newPlayerGrid = playerGrid.map(row => [...row]);
+        for (let i = 0; i < wordData.word.length; i++) {
             const r = wordData.direction === 'down' ? wordData.row + i : wordData.row;
             const c = wordData.direction === 'across' ? wordData.col + i : wordData.col;
             newPlayerGrid[r][c] = wordData.word[i];
