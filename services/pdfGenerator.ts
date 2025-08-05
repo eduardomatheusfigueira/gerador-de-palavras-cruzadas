@@ -157,11 +157,17 @@ export const generateCrosswordPdf = (gridData: GridData, theme: string, includeS
         doc.setFont('helvetica', 'normal');
 
         // Draw the compact grid
-        const gridEndY = drawGrid(doc, compactGrid, MARGIN + 12, false, true);
+        drawGrid(doc, compactGrid, MARGIN + 12, false, false);
 
-        // Draw the clues below the grid on the same page
-        const cluesStartY = gridEndY + 7;
-        drawClues(doc, gridData.clues, cluesStartY);
+        // --- Clues Page ---
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DICAS', A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+
+        // Draw the clues using a table for better organization
+        drawClues(doc, gridData.clues, MARGIN + 12);
 
         // --- Solution Page (Optional) ---
         if (includeSolution) {
