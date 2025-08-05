@@ -42,21 +42,27 @@ const createCompactGrid = (grid: GridCell[][]): GridCell[][] => {
 
 
 // Helper to draw the grid
-const drawGrid = (doc: jsPDF, grid: GridCell[][], startY: number, showSolution: boolean) => {
-    const gridSize = grid.length;
-    const gridColSize = grid[0].length;
+const drawGrid = (
+    doc: jsPDF,
+    grid: GridCell[][],
+    startY: number,
+    showSolution: boolean,
+    reserveClueSpace = true
+) => {
+    const rows = grid.length;
+    const cols = grid[0].length;
     const availableWidth = A5_WIDTH - MARGIN * 2;
-    // Make cell size dependent on the larger dimension to maintain aspect ratio
-    const cellSize = availableWidth / Math.max(gridSize, gridColSize);
-    const totalGridWidth = gridColSize * cellSize;
+    const maxHeight = (reserveClueSpace ? A5_HEIGHT - MARGIN - 80 : A5_HEIGHT - MARGIN) - startY;
+    const cellSize = Math.min(availableWidth / cols, maxHeight / rows);
+    const totalGridWidth = cols * cellSize;
     const startX = (A5_WIDTH - totalGridWidth) / 2; // Center the grid horizontally
 
     doc.setDrawColor(100, 100, 100); // Darker gray for lines
     doc.setTextColor(0, 0, 0);
     doc.setLineWidth(0.2);
 
-    for (let r = 0; r < gridSize; r++) {
-        for (let c = 0; c < gridColSize; c++) {
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
             const cell = grid[r][c];
             const x = startX + c * cellSize;
             const y = startY + r * cellSize;
@@ -80,7 +86,7 @@ const drawGrid = (doc: jsPDF, grid: GridCell[][], startY: number, showSolution: 
             }
         }
     }
-    return startY + gridSize * cellSize;
+    return startY + rows * cellSize;
 };
 
 // Helper to draw clues with dynamic font size
@@ -151,7 +157,7 @@ export const generateCrosswordPdf = (gridData: GridData, theme: string, includeS
         doc.setFont('helvetica', 'normal');
 
         // Draw the compact grid
-        const gridEndY = drawGrid(doc, compactGrid, MARGIN + 12, false);
+        const gridEndY = drawGrid(doc, compactGrid, MARGIN + 12, false, true);
 
         // Draw the clues below the grid on the same page
         const cluesStartY = gridEndY + 7;
@@ -166,7 +172,7 @@ export const generateCrosswordPdf = (gridData: GridData, theme: string, includeS
             doc.setFont('helvetica', 'normal');
 
             // Draw the compact grid with the solution
-            drawGrid(doc, compactGrid, MARGIN + 12, true);
+            drawGrid(doc, compactGrid, MARGIN + 12, true, false);
         }
 
         const sanitizedTheme = theme.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 'palavras_cruzadas';
