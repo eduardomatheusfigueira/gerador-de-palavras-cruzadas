@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { BRAND_NAME, BRAND_TAGLINE } from './brand';
 import { Toaster, toast } from 'react-hot-toast';
 import type { WordInput, GridData, GridCell, ValidationState, Clue, PlacedWord, SavedGame } from './types';
 import { generateCrosswordLayout } from './services/crosswordGenerator';
@@ -534,10 +535,10 @@ export default function App() {
             ) : (
                 <div className="container mx-auto p-4 md:p-8">
                     <header className="text-center mb-10">
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800">
-                            Gerador de Palavras Cruzadas
+                        <h1 className="text-4xl md:text-5xl font-extrabold brand-title">
+                            {BRAND_NAME}
                         </h1>
-                        <p className="text-lg text-gray-600 mt-2">Crie, jogue e imprima suas palavras cruzadas</p>
+                        <p className="text-lg text-gray-600 mt-2">{BRAND_TAGLINE}</p>
                     </header>
 
                     {page === 'player' ? renderPlayer() : renderEditor()}

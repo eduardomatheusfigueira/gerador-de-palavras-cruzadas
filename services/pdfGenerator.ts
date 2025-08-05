@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import type { GridData, GridCell, Clue } from '../types';
+import { BRAND_NAME, BRAND_PRIMARY_COLOR } from '../brand';
 
 const A5_WIDTH = 148;
 const A5_HEIGHT = 210;
@@ -163,12 +164,16 @@ export const generateCrosswordPdf = (
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a5' });
     const compactGrid = createCompactGrid(gridData.grid);
 
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(theme.toUpperCase(), A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
+    doc.setTextColor(...BRAND_PRIMARY_COLOR);
+    doc.text(BRAND_NAME.toUpperCase(), A5_WIDTH / 2, MARGIN + 5, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(16);
+    doc.text(theme.toUpperCase(), A5_WIDTH / 2, MARGIN + 14, { align: 'center' });
     doc.setFont('helvetica', 'normal');
 
-    const gridStartY = MARGIN + 12;
+    const gridStartY = MARGIN + 20;
     const gridBottom = drawGrid(doc, compactGrid, gridStartY, includeSolution);
     const cluesStartY = gridBottom + 5;
     const availableHeight = A5_HEIGHT - cluesStartY - MARGIN;
