@@ -1,6 +1,5 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { BRAND_NAME, BRAND_TAGLINE } from './brand';
 import { Toaster, toast } from 'react-hot-toast';
 import type { WordInput, GridData, GridCell, ValidationState, Clue, PlacedWord, SavedGame } from './types';
 import { generateCrosswordLayout } from './services/crosswordGenerator';
@@ -19,12 +18,8 @@ const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" heig
 const PlusIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>);
 const SparklesIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6.5 6.5 0 0 0-6.5 6.5c0 1.95.89 3.71 2.28 4.95A6.5 6.5 0 0 0 12 21a6.5 6.5 0 0 0 6.5-6.5c0-1.95-.89-3.71-2.28-4.95A6.5 6.5 0 0 0 12 3Z" /><path d="M5 3v4" /><path d="M19 3v4" /><path d="M22 12h-4" /><path d="M2 12H6" /><path d="m7 7-4 4" /><path d="m17 7 4 4" /><path d="m7 17 4 4" /><path d="m17 17-4 4" /></svg>);
 const PdfIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>);
-const PlayIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5.26 17.53 1.41 1.41C8.21 20.48 10 21 12 21s3.79-.52 5.33-1.94l1.41-1.41" /><path d="M5.26 6.47 6.67 5.06C8.21 3.52 10 3 12 3s3.79.52 5.33 1.94l1.41 1.41" /><path d="M15.53 5.26 14.12 6.67C12.48 8.21 12 10 12 12s.48 3.79 1.94 5.33l1.41 1.41" /><path d="M8.47 5.26 9.88 6.67C11.52 8.21 12 10 12 12s-.48 3.79-1.94 5.33L8.47 18.74" /><path d="M12 8v8" /><path d="M8 12h8" /></svg>);
 const ShowAnswersIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>);
 const SaveIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>);
-const LoadIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>);
-const KeyIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>);
-const TimerIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>);
 
 export default function App() {
     const formatTime = (seconds: number) => {
@@ -45,6 +40,7 @@ export default function App() {
     const [showSolution, setShowSolution] = useState(false);
     const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('gemini-api-key') || '');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [timerSpeed, setTimerSpeed] = useState<'rapido' | 'medio' | 'lento'>('medio');
 
     // Navigation
     const [page, setPage] = useState<'menu' | 'editor' | 'player'>('menu');
@@ -97,7 +93,8 @@ export default function App() {
     const handlePlayTimedMode = () => {
         if (!gridData) return;
         setGameMode('timed');
-        setTimeLeft(300); // 5 minutes
+        const durations: Record<'rapido' | 'medio' | 'lento', number> = { rapido: 120, medio: 300, lento: 600 };
+        setTimeLeft(durations[timerSpeed]);
         setIsTimerRunning(true);
         setIsGameOver(false);
         resetPlayerState();
@@ -381,6 +378,9 @@ export default function App() {
                     onThemeChange={setTheme}
                     wordCount={wordCount}
                     onWordCountChange={setWordCount}
+                    canPlay={!!gridData}
+                    onPlayClassic={handlePlayOnline}
+                    onPlayTimed={handlePlayTimedMode}
                 />
                  {/* This section could be a separate component */}
                  <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
@@ -405,14 +405,6 @@ export default function App() {
                             <button onClick={() => setShowSolution(!showSolution)} className="inline-flex items-center gap-2 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 transition-transform transform hover:scale-105">
                                 <ShowAnswersIcon />
                                 {showSolution ? 'Ocultar Respostas' : 'Mostrar Respostas'}
-                            </button>
-                            <button onClick={handlePlayOnline} className="inline-flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105">
-                                <PlayIcon />
-                                Jogar Online
-                            </button>
-                            <button onClick={handlePlayTimedMode} className="inline-flex items-center gap-2 bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-transform transform hover:scale-105">
-                                <TimerIcon />
-                                Contra o Relógio
                             </button>
                             <button onClick={handleSaveGame} className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
                                 <SaveIcon />
@@ -525,6 +517,8 @@ export default function App() {
                 onClose={() => setIsSettingsOpen(false)}
                 apiKey={apiKey}
                 onApiKeyChange={setApiKey}
+                timerSpeed={timerSpeed}
+                onTimerSpeedChange={setTimerSpeed}
             />
             {page === 'menu' ? (
                 <MainMenu
@@ -534,16 +528,9 @@ export default function App() {
                 />
             ) : (
                 <div className="container mx-auto p-4 md:p-8">
-                    <header className="text-center mb-10">
-                        <h1 className="text-4xl md:text-5xl font-extrabold brand-title">
-                            {BRAND_NAME}
-                        </h1>
-                        <p className="text-lg text-gray-600 mt-2">{BRAND_TAGLINE}</p>
-                    </header>
-
                     {page === 'player' ? renderPlayer() : renderEditor()}
 
-                     <footer className="text-center mt-12 text-gray-500 text-sm">
+                    <footer className="text-center mt-12 text-gray-500 text-sm">
                         <p>Desenvolvido com React, TypeScript, Tailwind CSS e a API Google Gemini.</p>
                     </footer>
                 </div>

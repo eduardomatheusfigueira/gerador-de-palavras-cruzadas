@@ -10,9 +10,11 @@ interface SettingsModalProps {
   onClose: () => void;
   apiKey: string;
   onApiKeyChange: (key: string) => void;
+  timerSpeed: 'rapido' | 'medio' | 'lento';
+  onTimerSpeedChange: (speed: 'rapido' | 'medio' | 'lento') => void;
 }
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, apiKey, onApiKeyChange }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, apiKey, onApiKeyChange, timerSpeed, onTimerSpeedChange }) => {
   if (!isOpen) return null;
 
   return (
@@ -38,6 +40,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, apiKey, 
                     placeholder="Cole sua chave de API aqui"
                     className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 />
+            </div>
+            <div>
+                <label htmlFor="timerSpeed" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tempo do modo cronometrado
+                </label>
+                <select
+                    id="timerSpeed"
+                    value={timerSpeed}
+                    onChange={(e) => onTimerSpeedChange(e.target.value as 'rapido' | 'medio' | 'lento')}
+                    className="w-full bg-white text-gray-900 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="rapido">Rápido</option>
+                    <option value="medio">Médio</option>
+                    <option value="lento">Lento</option>
+                </select>
             </div>
             <p className="text-xs text-gray-500">
                 Sua chave é salva apenas neste navegador.
